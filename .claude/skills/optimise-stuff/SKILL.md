@@ -29,7 +29,7 @@ Références : `docs/config-cible.md` (format, score, implémentation), `docs/ro
 La recherche n'est pas exhaustive et dépend de `--seed` : pour un résultat important, lancer 2 ou 3 seeds
 et garder le meilleur (les fichiers `resultats/` sont écrasés à chaque lancement : noter les scores).
 Options : `--restarts N` (défaut 20 ; plus = plus long, meilleur), `--seed N` (autre exploration), `--ecart 0.05`
-(propositions jusqu'à 5 % du meilleur).
+(propositions jusqu'à 5 % du meilleur), `--workers N` (chaînes en parallèle, défaut : nombre de cœurs).
 Résultats : `resultats/<nom>-<n>.json` + `.points.json` + `.forgemagie.json` (exo PA / PM, runes de
 transcendance, Dracorunes si activées, `docs/forgemagie.md`) ; le script affiche un comparatif
 puis le détail de chaque proposition.

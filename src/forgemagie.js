@@ -34,8 +34,8 @@ export const RUNES = Object.fromEntries([
     'dealtDamageMultiplierWeapon', 'receivedDamageMultiplierMelee', 'receivedDamageMultiplierDistance'], 15, [1, null, null]],
 ].flatMap(([keywords, poids, [TA, Pa, Ra]]) => keywords.map((k) => [k, { poids, valeurs: { TA, Pa, Ra } }])));
 
-/** Emplacements dont les objets sont transcendables (tout sauf Dofus / trophées / Prysmaradites). */
-export const TRANS_SLOTS = Object.keys(SLOTS).filter((s) => s !== 'dofus');
+/** Emplacements forgemageables (tout sauf Dofus / trophées / Prysmaradites et familiers / montures / montiliers). */
+export const TRANS_SLOTS = Object.keys(SLOTS).filter((s) => s !== 'dofus' && s !== 'pet');
 
 /** Rune la plus forte applicable sur un objet pour une caractéristique, ou null. */
 export function bestRune(item, stat) {

@@ -31,6 +31,8 @@ Il est **théorique** : on ne stocke que des identifiants d'objets (`items.id`) 
   ex. 9031 Annobusé de Maître Jarbo, 9396 Le sceau des Zewouan) : condition jamais satisfaite.
 - Objets réservés à un personnage nommé (condition `PN~<pseudo>`) : condition jamais satisfaite.
 - Bouclier Fi'Squale (18691).
+- **Sur demande explicite uniquement** (`ON_REQUEST_ITEM_IDS`, règle utilisateur du 2026-11-27) : Prysmenvout (22020).
+  Jamais proposé par l'aléatoire ni par l'optimiseur ; seulement s'il est imposé par la cible (`objets.imposes`).
 - Objets de classe :
   - objets ayant au moins un effet de modification de sort (`item_effects.category = 3`) :
     les 19 panoplies de classe (ex. 89 Panoplie Criminelle), 95 objets ;

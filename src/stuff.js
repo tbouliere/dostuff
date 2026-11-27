@@ -21,6 +21,11 @@ export const SLOTS = {
 
 export const PRYSMARADITE_TYPE = 217;
 export const EXCLUDED_ITEM_IDS = new Set([18691 /* Bouclier Fi'Squale */]);
+/**
+ * Objets proposés uniquement sur demande explicite de l'utilisateur : absents des recherches (aléatoire,
+ * optimiseur) mais utilisables s'ils sont imposés par la cible (`objets.imposes`).
+ */
+export const ON_REQUEST_ITEM_IDS = new Set([22020 /* Prysmenvout */]);
 
 const slotOfType = new Map(
   Object.entries(SLOTS).flatMap(([slot, s]) => s.typeIds.map((t) => [t, slot])),
@@ -46,7 +51,7 @@ export function loadEligibleItems({ maxLevel = 200, dbPath = DB_PATH } = {}) {
     `).all(maxLevel);
     const bySlot = Object.fromEntries(Object.keys(SLOTS).map((s) => [s, []]));
     for (const it of rows) {
-      if (EXCLUDED_ITEM_IDS.has(it.id)) continue;
+      if (EXCLUDED_ITEM_IDS.has(it.id) || ON_REQUEST_ITEM_IDS.has(it.id)) continue;
       bySlot[slotOfType.get(it.typeId)].push(it);
     }
     return bySlot;

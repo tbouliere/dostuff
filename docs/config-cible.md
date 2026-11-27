@@ -148,6 +148,9 @@ stuff invalide si une contrainte stricte, une règle de docs/stuff.md ou une con
   linéaire (gradient du score) **+ gain de palier de panoplie** ; mouvements « panoplie » (2..8 objets d'un coup,
   estimation incluant le palier), avec variante sans trophées `pk<2` pour autoriser plusieurs panoplies ;
   20 redémarrages ; 3 propositions à moins de 3 % du meilleur. Non exhaustif : le résultat dépend de `--seed`.
+  Multi-cœurs (`src/optimiseur-parallele.js`) : les redémarrages sont répartis entre `--workers` chaînes
+  indépendantes (défaut : nombre de cœurs ; graine dérivée par chaîne), dont les solutions sont fusionnées ;
+  le résultat dépend donc aussi de `--workers` (`--workers 1` = recherche mono-thread d'origine).
 - Forgemagie (`src/forgemagie.js`) : à chaque passe, l'optimiseur essaie tous les placements d'exo PA / PM
   sur les anneaux, puis retient pour chaque objet transcendable la meilleure rune (3 meilleures selon le
   gradient, évaluées exactement) et, si activées, les meilleures Dracorunes (combinées à la transcendance) ;

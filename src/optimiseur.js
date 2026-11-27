@@ -46,8 +46,13 @@ function objective(r) {
   return r.score - 2000 * r.manqueStrict - 100000 * autres;
 }
 
-export function optimise(cible, {
-  restarts = 20, topK = 30, seed = 1, propositions = 3, ecart = 0.03, difference = 3, log = () => {},
+/**
+ * Une chaîne de recherche : recherche locale depuis le stuff vide, puis `restarts` redémarrages perturbés
+ * (ou, si `prendre` est fourni, tant que prendre() renvoie true : redémarrages distribués entre workers).
+ * Renvoie toutes les solutions trouvées (`found`) ; utilisée seule ou dans un worker (optimiseur-parallele.js).
+ */
+export function chaine(cible, {
+  restarts = 20, topK = 30, seed = 1, prendre = null, onStart = () => {}, onRestart = () => {},
 } = {}) {
   const rand = mulberry32(seed);
   const pools = loadEligibleItems();
@@ -325,25 +330,35 @@ export function optimise(cible, {
   // Départ : stuff vide (hors imposés), répartition calculée dessus.
   const found = [localSearch(stuff, bestPoints(clean(stuff), cible))];
   let best = found[0];
-  log(`départ : ${best.value.toFixed(1)}`);
-  for (let r = 0; r < restarts; r++) {
+  onStart(best.value);
+  // Positions perturbables : libres (non imposées) et avec au moins un objet candidat. Sans aucune (toutes les
+  // positions imposées : évaluation d'un stuff connu), les redémarrages sont inutiles : seuls la forgemagie et les
+  // points sont optimisés, par la recherche initiale.
+  const perturbables = free.filter((p) => pools[p.slot]?.length);
+  for (let r = 0; perturbables.length && (prendre ? prendre() : r < restarts); r++) {
     // Un redémarrage sur deux part d'une solution déjà trouvée prise au hasard, avec une perturbation plus forte,
     // pour explorer d'autres combinaisons (et proposer des alternatives).
     const from = r % 2 === 0 ? best : found[Math.floor(rand() * found.length)];
     let s = from.stuff;
     for (let i = 0; i < (r % 2 === 0 ? 4 : 7); i++) {
-      const p = free[Math.floor(rand() * free.length)];
+      const p = perturbables[Math.floor(rand() * perturbables.length)];
       const pool = pools[p.slot];
       s = put(s, p, pool[Math.floor(rand() * pool.length)]);
     }
     const res = localSearch(s, from.points);
     found.push(res);
-    log(`redémarrage ${r + 1}/${restarts} : ${res.value.toFixed(1)}${res.value > best.value ? ' ★' : ''}`);
+    onRestart(res.value, r);
     if (res.value > best.value) best = res;
   }
+  return { found, evals };
+}
 
-  // Propositions : jusqu'à `propositions` solutions valides, à moins de `ecart` du meilleur score,
-  // différant entre elles d'au moins `difference` objets.
+/**
+ * Propositions : jusqu'à `propositions` solutions valides, à moins de `ecart` du meilleur score,
+ * différant entre elles d'au moins `difference` objets.
+ */
+export function choisirPropositions(found, cible, { propositions = 3, ecart = 0.03, difference = 3 } = {}) {
+  const best = found.reduce((a, b) => (b.value > a.value ? b : a));
   const ids = (st) => POSITIONS.map((p) => get(st, p)?.id ?? 0);
   const diff = (a, b) => {
     const count = (st) => ids(st).reduce((m, id) => m.set(id, (m.get(id) ?? 0) + 1), new Map());
@@ -358,11 +373,22 @@ export function optimise(cible, {
     if (f.value < best.value * (1 - ecart)) break;
     if (chosen.every((c) => diff(c, f) >= difference)) chosen.push(f);
   }
-  return {
-    propositions: chosen.map((c) => {
-      const st = clean(c.stuff);
-      return { stuff: st, points: c.points, fm: c.fm, result: evaluate(st, cible, c.points, c.fm) };
-    }),
-    evals,
-  };
+  return chosen.map((c) => {
+    const st = clean(c.stuff);
+    return { stuff: st, points: c.points, fm: c.fm, result: evaluate(st, cible, c.points, c.fm) };
+  });
+}
+
+/** Recherche mono-thread (une seule chaîne). Version multi-cœurs : optimiseParallele (optimiseur-parallele.js). */
+export function optimise(cible, { log = () => {}, ...opts } = {}) {
+  let best = -Infinity;
+  const { found, evals } = chaine(cible, {
+    ...opts,
+    onStart: (v) => { best = v; log(`départ : ${v.toFixed(1)}`); },
+    onRestart: (v, r) => {
+      log(`redémarrage ${r + 1}/${opts.restarts ?? 20} : ${v.toFixed(1)}${v > best ? ' ★' : ''}`);
+      best = Math.max(best, v);
+    },
+  });
+  return { propositions: choisirPropositions(found, cible, opts), evals };
 }

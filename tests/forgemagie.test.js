@@ -90,3 +90,9 @@ test('publication : lignes converties à 0, lignes nouvelles en exos', () => {
   const out = toPublishFormat({ 9: { draco: { rune: 'Emeraude', from: 'Terre' } } }, { helmet: it });
   assert.deepEqual(out, { 9: { stats: { strength: 0 }, exos: [{ stat: 'agility', value: 80 }] } });
 });
+
+test('familier / monture / montilier : aucune forgemagie possible', () => {
+  const stuff = loadStuff({ pet: 1728 }); // Chacha
+  assert.match(validateForgemagie({ 1728: { trans: { stat: 'vitality', taille: 'Ra', value: 100 } } }, stuff).join(), /transcendance impossible sur ce type/);
+  assert.match(validateForgemagie({ 1728: { draco: { rune: 'Ébène' } } }, stuff, { forgemagie: { dracorunes: true } }).join(), /Dracorune impossible sur ce type/);
+});

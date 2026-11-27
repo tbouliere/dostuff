@@ -2,15 +2,17 @@
 // Cherche les meilleurs stuffs pour une cible (jusqu'à 3 propositions de score équivalent), les enregistre
 // dans resultats/<nom>-<n>.json et les affiche.
 //
-// Usage : npm run optimise -- cibles/<nom>.json [--restarts 20] [--seed 1] [--ecart 0.03] [--publish]
+// Usage : npm run optimise -- cibles/<nom>.json [--restarts 20] [--seed 1] [--ecart 0.03] [--workers N] [--publish]
+//   --workers  nombre de chaînes de recherche en parallèle (défaut : nombre de cœurs ; 1 = mono-thread)
 //   --ecart    écart de score maximal d'une proposition par rapport à la meilleure (défaut 3 %)
 //   --publish  publie chaque proposition sur DofusDB (identifiants dans .env)
 // Ré-évaluation : npm run evaluate -- cibles/<nom>.json --stuff resultats/<nom>-1.json --points resultats/<nom>-1.points.json
 //                 --forgemagie resultats/<nom>-1.forgemagie.json
 
 import fs from 'node:fs';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { optimise } from '../src/optimiseur.js';
+import { optimiseParallele } from '../src/optimiseur-parallele.js';
 import { SLOTS } from '../src/stuff.js';
 
 const arg = (name, def) => {
@@ -19,7 +21,7 @@ const arg = (name, def) => {
 };
 const ciblePath = process.argv[2];
 if (!ciblePath || ciblePath.startsWith('--')) {
-  console.error('Usage : npm run optimise -- cibles/<nom>.json [--restarts 20] [--seed 1] [--ecart 0.03] [--publish]');
+  console.error('Usage : npm run optimise -- cibles/<nom>.json [--restarts 20] [--seed 1] [--ecart 0.03] [--workers N] [--publish]');
   process.exit(1);
 }
 const cible = JSON.parse(fs.readFileSync(ciblePath, 'utf8'));
@@ -42,7 +44,8 @@ for (const mode of modes) {
   const c = { ...cible, critique: mode };
   if (modes.length > 1) console.log(`\n######## Mode ${mode === 'oui' ? 'critique' : 'non critique'} ########`);
   const t0 = Date.now();
-  const { propositions, evals } = optimise(c, {
+  const { propositions, evals } = await optimiseParallele(c, {
+    workers: Number(arg('workers', os.availableParallelism())),
     restarts: Number(arg('restarts', 20)),
     seed: Number(arg('seed', 1)),
     ecart: Number(arg('ecart', 0.03)),

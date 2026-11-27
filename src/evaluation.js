@@ -59,7 +59,7 @@ export function setBonus(setId, count) {
 // ---------------------------------------------------------------------------
 
 const add = (acc, stats, factor = 1) => {
-  for (const [k, v] of Object.entries(stats)) acc[k] = (acc[k] ?? 0) + v * factor;
+  for (const k in stats) acc[k] = (acc[k] ?? 0) + stats[k] * factor;
 };
 
 /**
@@ -67,8 +67,12 @@ const add = (acc, stats, factor = 1) => {
  * + effets conditionnels des objets imposés (clés = keywords).
  */
 export function rawTotals(items, points, effets = {}) {
-  const t = { actionPoints: BASE.ap, movementPoints: BASE.mp };
-  add(t, points);
+  return finishTotals(sumStats(items, effets), points);
+}
+
+/** Partie des totaux indépendante des points : parchemins + objets + panoplies + effets conditionnels. */
+function sumStats(items, effets) {
+  const t = {};
   add(t, PARCHMENT);
   for (const it of items) add(t, it.stats);
   const perSet = new Map();
@@ -81,6 +85,14 @@ export function rawTotals(items, points, effets = {}) {
       if (!['multiplicateur_final', 'puissance_par_pm', 'pm_contrainte'].includes(k)) t[k] = (t[k] ?? 0) + v;
     }
   }
+  return t;
+}
+
+/** Base + points + somme précalculée, puis caractéristiques dérivées (PV, sagesse). */
+function finishTotals(sum, points) {
+  const t = { actionPoints: BASE.ap, movementPoints: BASE.mp };
+  add(t, points);
+  add(t, sum);
   t.hitPoints = BASE.hp + (t.vitality ?? 0);
   // Sagesse : +1 Retrait PA / PM et +1 Esquive PA / PM par 10 points (docs/personnage.md).
   const sagesse = Math.floor(Math.max(0, t.wisdom ?? 0) / 10);
@@ -110,7 +122,9 @@ export function bonusWeights(cible) {
 
 /** Applique les plafonds de docs/personnage.md. */
 export function capped(t) {
-  const c = { ...t };
+  return capInPlace({ ...t });
+}
+function capInPlace(c) {
   c.actionPoints = Math.min(c.actionPoints ?? 0, CAPS.ap);
   c.movementPoints = Math.min(c.movementPoints ?? 0, CAPS.mp);
   for (const k of RES_PCT) if (c[k] !== undefined) c[k] = Math.min(c[k], CAPS.resistPercent);
@@ -130,8 +144,10 @@ const CRIT_CODES = {
  * Évalue une condition (`CP<12|CM<6`, `(CS>89&CI>89)`, `pk<2`…) sur le total final.
  * Renvoie true / false, ou null si un code n'est pas géré (quêtes, métiers…), traité comme satisfait.
  */
+const tokenCache = new Map();
 export function evalCriterion(expr, ctx) {
-  const tokens = expr.match(/\(|\)|&|\||[A-Za-z]{2}[<>=!~][^&|()]*/g) ?? [];
+  let tokens = tokenCache.get(expr);
+  if (!tokens) tokenCache.set(expr, tokens = expr.match(/\(|\)|&|\||[A-Za-z]{2}[<>=!~][^&|()]*/g) ?? []);
   let i = 0;
   const unknown = new Set();
   const atom = (tok) => {
@@ -249,70 +265,85 @@ export function critSeuil(cible) {
 
 /** @param fm forgemagie au format de src/forgemagie.js (optionnelle) */
 export function evaluate(stuff, cible, points, fm = {}) {
+  return prepareEvaluation(stuff, cible, fm)(points);
+}
+
+/**
+ * Évaluation en deux temps : tout ce qui ne dépend pas des points (validation, forgemagie, panoplies, somme des
+ * objets) est calculé une fois ; la fonction renvoyée évalue ensuite une répartition de points (même résultat
+ * qu'evaluate). Utilisée par bestPoints, qui évalue des centaines de répartitions pour un même stuff.
+ */
+export function prepareEvaluation(stuff, cible, fm = {}) {
   const items = Object.values(stuff).flat().filter(Boolean);
   const effets = cible.objets?.effets_conditionnels ?? {};
-  const erreurs = validate(stuff).filter((e) => !e.includes('pk<2')); // pk<2 traité avec les conditions
-  erreurs.push(...validateForgemagie(fm, stuff, cible));
-  const avertissements = [];
-
-  for (const id of cible.objets?.imposes ?? []) if (!items.some((i) => i.id === id)) erreurs.push(`objet imposé absent : ${id}`);
-  for (const id of cible.objets?.interdits ?? []) if (items.some((i) => i.id === id)) erreurs.push(`objet interdit présent : ${id}`);
-
-  const spent = Object.entries(points).reduce((s, [c, v]) => { for (let i = 0; i < v; i++) s += pointCost(c, i); return s; }, 0);
-  if (spent > CHARAC_POINTS) erreurs.push(`${spent} points dépensés > ${CHARAC_POINTS}`);
-
-  const raw = rawTotals([...items, { id: -2, stats: forgemagieStats(fm, stuff) }], points, effets);
-  const ctx = { totals: raw, setCount: equippedSetCount(items) };
-  for (const it of items) {
-    if (!it.criterions) continue;
-    const { ok, unknown } = evalCriterion(it.criterions, ctx);
-    if (ok === false) erreurs.push(`${it.name} : condition ${it.criterions} non respectée`);
-    if (unknown.length) avertissements.push(`${it.name} : condition ${it.criterions} non évaluable (${unknown.join(', ')}), supposée respectée`);
-  }
-
-  const t = capped(raw);
-  let multFinal = 1;
-  let pmBonus = 0;
-  let soinPct = 0; // soin unique en % des PV (Argenté Scintillant) → PV effectifs, hors contrainte de PV
-  for (const it of items) {
-    const e = effets[it.id] ?? {};
-    if (e.multiplicateur_final) multFinal *= e.multiplicateur_final;
-    if (e.puissance_par_pm) t.damagePercent = (t.damagePercent ?? 0) + e.puissance_par_pm * t.movementPoints;
-    if (e.pm_contrainte) pmBonus += e.pm_contrainte;
-    if (e.soin_pv_pct) soinPct += e.soin_pv_pct;
-  }
-
-  const degats = (cible.degats?.sorts ?? []).map((l) => ({ sort: l.sort, poids: l.poids, ...lineDamage(l, t, { cible: cible.degats.cible, multFinal }) }));
-  const scoreDegats = degats.reduce((s, d) => s + d.poids * d.moyenne, 0);
+  const erreursFixes = validate(stuff).filter((e) => !e.includes('pk<2')); // pk<2 traité avec les conditions
+  erreursFixes.push(...validateForgemagie(fm, stuff, cible));
+  for (const id of cible.objets?.imposes ?? []) if (!items.some((i) => i.id === id)) erreursFixes.push(`objet imposé absent : ${id}`);
+  for (const id of cible.objets?.interdits ?? []) if (items.some((i) => i.id === id)) erreursFixes.push(`objet interdit présent : ${id}`);
+  const sum = sumStats([...items, { id: -2, stats: forgemagieStats(fm, stuff) }], effets);
+  const setCount = equippedSetCount(items);
+  const conditionnes = items.filter((it) => it.criterions);
   const weights = bonusWeights(cible);
-  const scoreSoin = ((weights.vitality ?? 0) + (weights.hitPoints ?? 0)) * (t.hitPoints ?? 0) * soinPct / 100;
-  const scoreBonus = Object.entries(weights).reduce((s, [k, w]) => s + w * (t[k] ?? 0), 0) + scoreSoin;
+  return scorePoints;
 
-  let penalites = 0;
-  let manqueStrict = 0; // points manquants sur les contraintes strictes (guide l'optimiseur)
-  for (const [k, c] of Object.entries(cible.contraintes ?? {})) {
-    const value = (t[k] ?? 0) + (k === 'movementPoints' ? pmBonus : 0);
-    const missing = Math.max(0, c.min - value);
-    if (!missing) continue;
-    if (c.strict) { erreurs.push(`contrainte ${k} : ${value} < ${c.min}`); manqueStrict += missing; }
-    else penalites += missing * c.penalite;
-  }
-  // Stuff critique (docs/config-cible.md) : contrainte stricte de Critique.
-  const seuilCrit = cible.critique === 'oui' ? critSeuil(cible) : null;
-  if (cible.critique === 'oui') {
-    if (seuilCrit === null) erreurs.push('critique "oui" mais aucun sort de la cible ne peut critiquer');
-    else if ((t.criticalHit ?? 0) < seuilCrit) {
-      erreurs.push(`contrainte criticalHit : ${t.criticalHit ?? 0} < ${seuilCrit} (stuff critique)`);
-      manqueStrict += seuilCrit - (t.criticalHit ?? 0);
+  function scorePoints(points) {
+    const erreurs = [...erreursFixes];
+    const avertissements = [];
+
+    const spent = Object.entries(points).reduce((s, [c, v]) => { for (let i = 0; i < v; i++) s += pointCost(c, i); return s; }, 0);
+    if (spent > CHARAC_POINTS) erreurs.push(`${spent} points dépensés > ${CHARAC_POINTS}`);
+
+    const raw = finishTotals(sum, points);
+    const ctx = { totals: raw, setCount };
+    for (const it of conditionnes) {
+      const { ok, unknown } = evalCriterion(it.criterions, ctx);
+      if (ok === false) erreurs.push(`${it.name} : condition ${it.criterions} non respectée`);
+      if (unknown.length) avertissements.push(`${it.name} : condition ${it.criterions} non évaluable (${unknown.join(', ')}), supposée respectée`);
     }
-  }
 
-  return {
-    valide: erreurs.length === 0, erreurs, avertissements, totals: t, degats,
-    score: scoreDegats + scoreBonus - penalites,
-    manqueStrict, seuilCrit,
-    detail: { degats: scoreDegats, bonus: scoreBonus, penalites, points_depenses: spent },
-  };
+    const t = capInPlace(raw); // raw n'est plus utilisé ensuite
+    let multFinal = 1;
+    let pmBonus = 0;
+    let soinPct = 0; // soin unique en % des PV (Argenté Scintillant) → PV effectifs, hors contrainte de PV
+    for (const it of items) {
+      const e = effets[it.id] ?? {};
+      if (e.multiplicateur_final) multFinal *= e.multiplicateur_final;
+      if (e.puissance_par_pm) t.damagePercent = (t.damagePercent ?? 0) + e.puissance_par_pm * t.movementPoints;
+      if (e.pm_contrainte) pmBonus += e.pm_contrainte;
+      if (e.soin_pv_pct) soinPct += e.soin_pv_pct;
+    }
+
+    const degats = (cible.degats?.sorts ?? []).map((l) => ({ sort: l.sort, poids: l.poids, ...lineDamage(l, t, { cible: cible.degats.cible, multFinal }) }));
+    const scoreDegats = degats.reduce((s, d) => s + d.poids * d.moyenne, 0);
+    const scoreSoin = ((weights.vitality ?? 0) + (weights.hitPoints ?? 0)) * (t.hitPoints ?? 0) * soinPct / 100;
+    const scoreBonus = Object.entries(weights).reduce((s, [k, w]) => s + w * (t[k] ?? 0), 0) + scoreSoin;
+
+    let penalites = 0;
+    let manqueStrict = 0; // points manquants sur les contraintes strictes (guide l'optimiseur)
+    for (const [k, c] of Object.entries(cible.contraintes ?? {})) {
+      const value = (t[k] ?? 0) + (k === 'movementPoints' ? pmBonus : 0);
+      const missing = Math.max(0, c.min - value);
+      if (!missing) continue;
+      if (c.strict) { erreurs.push(`contrainte ${k} : ${value} < ${c.min}`); manqueStrict += missing; }
+      else penalites += missing * c.penalite;
+    }
+    // Stuff critique (docs/config-cible.md) : contrainte stricte de Critique.
+    const seuilCrit = cible.critique === 'oui' ? critSeuil(cible) : null;
+    if (cible.critique === 'oui') {
+      if (seuilCrit === null) erreurs.push('critique "oui" mais aucun sort de la cible ne peut critiquer');
+      else if ((t.criticalHit ?? 0) < seuilCrit) {
+        erreurs.push(`contrainte criticalHit : ${t.criticalHit ?? 0} < ${seuilCrit} (stuff critique)`);
+        manqueStrict += seuilCrit - (t.criticalHit ?? 0);
+      }
+    }
+
+    return {
+      valide: erreurs.length === 0, erreurs, avertissements, totals: t, degats,
+      score: scoreDegats + scoreBonus - penalites,
+      manqueStrict, seuilCrit,
+      detail: { degats: scoreDegats, bonus: scoreBonus, penalites, points_depenses: spent },
+    };
+  }
 }
 
 /**
@@ -330,7 +361,8 @@ export function bestPoints(stuff, cible, fm = {}) {
   for (const [c, v] of Object.entries(mins)) {
     while (points[c] < v && pointCost(c, points[c]) <= left) { left -= pointCost(c, points[c]); points[c]++; }
   }
-  let current = evaluate(stuff, cible, points, fm).score;
+  const evalPoints = prepareEvaluation(stuff, cible, fm);
+  let current = evalPoints(points).score;
   // Plusieurs tailles de pas : les arrondis des dégâts rendent le gain d'un petit pas bruité.
   const STEPS = [5, 20, 50];
   for (;;) {
@@ -341,7 +373,7 @@ export function bestPoints(stuff, cible, fm = {}) {
         for (let i = 0; i < step; i++) cost += pointCost(c, points[c] + i);
         if (cost > left) break;
         points[c] += step;
-        const s = evaluate(stuff, cible, points, fm).score;
+        const s = evalPoints(points).score;
         points[c] -= step;
         const gain = (s - current) / cost;
         if (!best || gain > best.gain) best = { c, step, cost, s, gain };
@@ -359,7 +391,7 @@ export function bestPoints(stuff, cible, fm = {}) {
       const cost = pointCost(c, points[c]);
       if (cost > left) continue;
       points[c]++;
-      const s = evaluate(stuff, cible, points, fm).score;
+      const s = evalPoints(points).score;
       if (s > current) { current = s; left -= cost; improved = true; } else points[c]--;
     }
   }

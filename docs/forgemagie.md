@@ -52,9 +52,10 @@ densité : TA 40, Pa TA 60, Ra TA 80   →   seuil = ⌊(101 − densité) / poi
 
 ### Hypothèses retenues
 
-- Objets éligibles : **tous les équipements sauf Dofus, trophées et Prysmaradites** (familiers et montures compris),
-  soit les 10 emplacements hors Dofus.
-- **Une transcendance par objet**, sans autre limite : au plus 10 par stuff (moins les anneaux exo PA / PM).
+- Objets éligibles : **tous les équipements sauf Dofus, trophées, Prysmaradites, familiers, montures et
+  montiliers** (aucune forgemagie possible sur ces derniers, précisé par l'utilisateur le 2026-11-27),
+  soit 9 emplacements.
+- **Une transcendance par objet**, sans autre limite : au plus 9 par stuff (moins les anneaux exo PA / PM).
 - On suppose toujours la **taille la plus forte applicable** : Ra TA si le seuil le permet, sinon Pa TA, sinon TA.
 - **À gain égal, préférer les % Dommages sorts** (validé avec l'utilisateur, 2026-11-27) : ex. pièges posés à
   distance, où % sorts et % distance s'additionnent et valent autant ; les % sorts restent utiles au contact.
@@ -92,7 +93,8 @@ Source : texte officiel fourni par l'utilisateur. Une Dracorune **convertit** de
 - **Neutre jamais touché** : les Dommages Neutre ne sont ni convertis par les runes élémentaires, ni pris en
   compte ou supprimés par l'Ébène.
 - Ébène : valeurs **arrondies à l'inférieur** (70 % de 55 → 38).
-- Objets éligibles : comme la transcendance (tous les équipements sauf Dofus, trophées, Prysmaradites).
+- Objets éligibles : comme la transcendance (tous les équipements sauf Dofus, trophées, Prysmaradites,
+  familiers, montures, montiliers).
 - **Ordre** : la transcendance se fait avant (l'objet draconisé n'est plus modifiable) ; la Dracorune convertit
   la ligne **avec** le bonus de transcendance (Force 80 + 20 transcendée → Agilité 100).
 - « Déjà présent » s'entend **après** transcendance : une rune de transcendance Agilité sur un objet sans Agilité

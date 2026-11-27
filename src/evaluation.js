@@ -238,6 +238,15 @@ export function lineDamage(line, t, { cible = {}, multFinal = 1 } = {}) {
  * Évalue un stuff (objets chargés) pour une cible et une répartition de points donnée.
  * @returns {{ valide, erreurs, avertissements, totals, degats, score, detail }}
  */
+/**
+ * Seuil de Critique d'un stuff critique : de quoi porter à 100 % tous les sorts de dégâts de la cible qui peuvent
+ * critiquer (100 − plus petit % de critique de base). null si aucun sort de la cible ne critique.
+ */
+export function critSeuil(cible) {
+  const bases = (cible.degats?.sorts ?? []).filter((l) => l.critique && l.poids > 0).map((l) => l.critique_base_pct ?? 0);
+  return bases.length ? 100 - Math.min(...bases) : null;
+}
+
 /** @param fm forgemagie au format de src/forgemagie.js (optionnelle) */
 export function evaluate(stuff, cible, points, fm = {}) {
   const items = Object.values(stuff).flat().filter(Boolean);
@@ -288,11 +297,20 @@ export function evaluate(stuff, cible, points, fm = {}) {
     if (c.strict) { erreurs.push(`contrainte ${k} : ${value} < ${c.min}`); manqueStrict += missing; }
     else penalites += missing * c.penalite;
   }
+  // Stuff critique (docs/config-cible.md) : contrainte stricte de Critique.
+  const seuilCrit = cible.critique === 'oui' ? critSeuil(cible) : null;
+  if (cible.critique === 'oui') {
+    if (seuilCrit === null) erreurs.push('critique "oui" mais aucun sort de la cible ne peut critiquer');
+    else if ((t.criticalHit ?? 0) < seuilCrit) {
+      erreurs.push(`contrainte criticalHit : ${t.criticalHit ?? 0} < ${seuilCrit} (stuff critique)`);
+      manqueStrict += seuilCrit - (t.criticalHit ?? 0);
+    }
+  }
 
   return {
     valide: erreurs.length === 0, erreurs, avertissements, totals: t, degats,
     score: scoreDegats + scoreBonus - penalites,
-    manqueStrict,
+    manqueStrict, seuilCrit,
     detail: { degats: scoreDegats, bonus: scoreBonus, penalites, points_depenses: spent },
   };
 }

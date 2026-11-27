@@ -103,6 +103,14 @@ function check(file) {
       if (!isNum(v)) err(`effets_conditionnels.${id}.${k} doit être un nombre`);
     }
   }
+  // critique (optionnel) : "oui" | "non" | "auto"
+  if (d.critique !== undefined) {
+    if (!['oui', 'non', 'auto'].includes(d.critique)) err(`critique « ${d.critique} » (attendu "oui", "non" ou "auto")`);
+    else if (d.critique !== 'non' && !(sorts ?? []).some((s) => s.critique && s.poids > 0)) {
+      err(`critique « ${d.critique} » mais aucun sort de degats.sorts ne peut critiquer`);
+    }
+  }
+
   // forgemagie (optionnel)
   if (d.forgemagie !== undefined) {
     for (const [k, v] of Object.entries(d.forgemagie)) {

@@ -52,7 +52,8 @@ Donner les liens `https://dofusdb.fr/fr/tools/stuff/<id>` obtenus.
 ### 6. Ajuster
 Proposer les leviers pertinents et relancer après accord :
 - poids de `bonus` (offensif ↔ défensif), `poids` des sorts (rotation) ;
-- contraintes (strict ↔ compromis, pénalité) ;
+- contraintes (strict ↔ compromis, pénalité) ; mode `critique` (`oui` / `non` / `auto` : `auto` lance les deux
+  recherches, résultats `resultats/<nom>-critique-<n>` et `-non-critique-<n>`, temps doublé) ;
 - forgemagie (`forgemagie.exo_pa / exo_pm / transcendance` à false si l'utilisateur ne veut pas ;
   `forgemagie.dracorunes` à true pour autoriser les Dracorunes, désactivées par défaut — recherche ~3× plus longue) ;
 - objets imposés / interdits (ex. l'utilisateur n'a pas tel Dofus) ;

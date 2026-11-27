@@ -44,6 +44,10 @@ est ambigu, demander.
   condition de jeu. L'Ébène seulement si la classe alterne mêlée et distance. Acceptés → `objets.effets_conditionnels`
   et, si l'utilisateur veut les porter à coup sûr, `objets.imposes` (cumul maximal), avec **uniquement** les clés listées dans
   `docs/config-cible.md` (« Valeurs autorisées »). Nébuleux : demander l'hypothèse (×1,20 ou ×1,05).
+- **Critique** : stuff critique ou non critique (l'entre-deux est rarement bon). Si les sorts de dégâts retenus
+  critiquent et que le jet critique / les Dommages critiques valent le coup → proposer `"critique": "oui"`
+  (contrainte stricte : 100 % de critique sur ces sorts) ; sinon `"non"` ; en cas de doute `"auto"`
+  (l'optimiseur compare les deux).
 - **Défensif** : quelle importance donner à la Vitalité et aux résistances (poids de `bonus`). Les résistances
   distance/mêlée sont valorisées automatiquement (`docs/config-cible.md`, « Score d'un stuff ») ; ne les mettre
   dans `bonus` que pour s'écarter de cette valeur par défaut.

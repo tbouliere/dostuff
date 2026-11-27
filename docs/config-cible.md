@@ -65,6 +65,13 @@ rangé dans `cibles/<nom>.json` (le nom du fichier = champ `nom`). Vérification
     "effets_conditionnels": { "23237": { "allDamageBonus": 64 } }
   },
 
+  // 5 bis. Mode critique, optionnel (défaut "non") :
+  //    "oui"  → stuff critique : contrainte STRICTE Critique ≥ 100 − (plus petit % de critique de base des sorts
+  //             de degats.sorts qui peuvent critiquer), pour être à 100 % de critique sur tous ces sorts ;
+  //    "non"  → pas de seuil ; le critique compte pour ce qu'il rapporte (probabilité × gain du jet critique) ;
+  //    "auto" → l'optimiseur fait les deux recherches et présente le meilleur stuff de chaque mode.
+  "critique": "non",
+
   // 6. Forgemagie (docs/forgemagie.md), optionnel. Par défaut : exos et transcendance activés, Dracorunes
   //    désactivées. Mettre false / true selon ce que l'utilisateur veut (ou peut) forgemager.
   "forgemagie": { "exo_pa": true, "exo_pm": true, "transcendance": true, "dracorunes": false },

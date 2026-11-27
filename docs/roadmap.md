@@ -35,6 +35,9 @@ Le projet avance par étapes validées une à une par l'utilisateur. Ne pas impl
    Dracorunes (désactivées par défaut) intégrées, publication par la forgemagie (lignes converties à 0,
    lignes créées en exos) : à vérifier sur DofusDB
 
+8. Mode critique de la cible (`critique` : oui / non / auto) : stuff critique = contrainte stricte de 100 % de
+   critique sur les sorts de dégâts ; `auto` compare les deux modes (à valider)
+
 ## Idées notées (non planifiées)
 
 (aucune)

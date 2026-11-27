@@ -36,6 +36,8 @@ let ids;
 if (arg('stuff')) {
   const raw = JSON.parse(fs.readFileSync(arg('stuff'), 'utf8'));
   ids = raw.items ?? raw;
+  // Résultat d'optimisation en mode "auto" : le fichier indique le mode critique de la proposition.
+  if (raw.critique) cible.critique = raw.critique;
 } else {
   const seed = arg('seed') ?? String(Date.now() % 2 ** 32);
   ids = JSON.parse(execFileSync(process.execPath, ['--no-warnings', 'scripts/random-stuff.js', '--seed', seed, '--json'])).items;
@@ -116,6 +118,7 @@ for (const d of r.degats) {
 }
 
 console.log(`\nScore : ${fmt(r.score)}  (dégâts ${fmt(r.detail.degats)} + bonus ${fmt(r.detail.bonus)} − pénalités ${fmt(r.detail.penalites)})`);
+if (cible.critique === 'oui') console.log(`Stuff critique : ${t.criticalHit ?? 0} % de Critique (seuil ${r.seuilCrit ?? '-'} pour 100 % sur les sorts de dégâts)`);
 console.log(r.valide ? '✔ Stuff valide' : '✖ Stuff invalide :');
 for (const e of r.erreurs) console.log(`    - ${e}`);
 for (const w of r.avertissements) console.log(`  ⚠ ${w}`);

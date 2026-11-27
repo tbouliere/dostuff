@@ -30,6 +30,8 @@ La recherche n'est pas exhaustive et dépend de `--seed` : pour un résultat imp
 et garder le meilleur (les fichiers `resultats/` sont écrasés à chaque lancement : noter les scores).
 Options : `--restarts N` (défaut 20 ; plus = plus long, meilleur), `--seed N` (autre exploration), `--ecart 0.05`
 (propositions jusqu'à 5 % du meilleur), `--workers N` (chaînes en parallèle, défaut : nombre de cœurs).
+`--depart <stuff.json>` : part d'une proposition (format `resultats/<nom>-<n>.json`, à copier hors de `resultats/`
+avant, ces fichiers étant écrasés) et explore son voisinage — pour « réoptimiser la proposition n ».
 Résultats : `resultats/<nom>-<n>.json` + `.points.json` + `.forgemagie.json` (exo PA / PM, runes de
 transcendance, Dracorunes si activées, `docs/forgemagie.md`) ; le script affiche un comparatif
 puis le détail de chaque proposition.

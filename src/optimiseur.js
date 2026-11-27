@@ -16,6 +16,7 @@ import { RUNES, TRANS_SLOTS, bestRune, applyDraco, dracoOptions, options as forg
 const POSITIONS = Object.entries(SLOTS).flatMap(([slot, d]) =>
   Array.from({ length: d.count }, (_, i) => ({ slot, index: d.count > 1 ? i : null })));
 const CHARAC_CONDITION = /C[SVWICA]>/;
+const SLOT_KEYS = Object.keys(SLOTS);
 
 const get = (stuff, p) => (p.index === null ? stuff[p.slot] : stuff[p.slot]?.[p.index]);
 function put(stuff, p, item) {
@@ -52,7 +53,7 @@ function objective(r) {
  * Renvoie toutes les solutions trouvées (`found`) ; utilisée seule ou dans un worker (optimiseur-parallele.js).
  */
 export function chaine(cible, {
-  restarts = 20, topK = 30, seed = 1, prendre = null, onStart = () => {}, onRestart = () => {},
+  restarts = 20, topK = 30, seed = 1, prendre = null, depart = null, onStart = () => {}, onRestart = () => {},
 } = {}) {
   const rand = mulberry32(seed);
   const pools = loadEligibleItems();
@@ -80,6 +81,15 @@ export function chaine(cible, {
     locked.add(pos);
   }
   const free = POSITIONS.filter((p) => !locked.has(p));
+  // Stuff de départ (option `depart`, ids par emplacement comme dans resultats/<nom>-<n>.json) : la recherche part
+  // de ce stuff au lieu du stuff vide et explore son voisinage. Les objets imposés restent prioritaires.
+  if (depart) {
+    for (const id of SLOT_KEYS.flatMap((slot) => [depart[slot]].flat()).filter((x) => x != null)) {
+      const it = loadItem(id);
+      const pos = free.find((p) => SLOTS[p.slot].typeIds.includes(it.typeId) && !get(stuff, p));
+      if (pos) stuff = put(stuff, pos, it);
+    }
+  }
 
   let evals = 0;
   const run = (s, points, fm = {}) => { evals++; return evaluate(clean(s), cible, points, fm); };
@@ -327,7 +337,7 @@ export function chaine(cible, {
     return { stuff: cur, points, fm, value: score(cur, points, fm).value };
   }
 
-  // Départ : stuff vide (hors imposés), répartition calculée dessus.
+  // Départ : stuff vide (hors imposés) ou stuff `depart`, répartition calculée dessus.
   const found = [localSearch(stuff, bestPoints(clean(stuff), cible))];
   let best = found[0];
   onStart(best.value);

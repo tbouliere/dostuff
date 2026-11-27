@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "nom": "sram-terre-pvm",
+  "demande": "Sram terre pvm, on va taper fort",
+  "classe": {
+    "id": 4,
+    "nom": "Sram"
+  },
+  "points": {
+    "mode": "auto",
+    "minimum": {}
+  },
+  "contraintes": {
+    "actionPoints": {
+      "min": 12,
+      "strict": true
+    },
+    "movementPoints": {
+      "min": 6,
+      "strict": false,
+      "penalite": 400
+    },
+    "range": {
+      "min": 3,
+      "strict": false,
+      "penalite": 100
+    }
+  },
+  "degats": {
+    "cible": {
+      "resistances_pct": {},
+      "resistances_fixes": {}
+    },
+    "sorts": [
+      {
+        "sort": "Piège Mortel (cible < 50 % PV)",
+        "id": 12921,
+        "element": "Terre",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          49,
+          54
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      },
+      {
+        "sort": "Perfidie",
+        "id": 12949,
+        "element": "Terre",
+        "type": "sort",
+        "portee": "melee",
+        "normal": [
+          56,
+          60
+        ],
+        "critique": [
+          62,
+          66
+        ],
+        "critique_base_pct": 25,
+        "poids": 1
+      },
+      {
+        "sort": "Attaque Mortelle (cible < 50 % PV)",
+        "id": 12917,
+        "element": "Terre",
+        "type": "sort",
+        "portee": "melee",
+        "normal": [
+          54,
+          60
+        ],
+        "critique": [
+          65,
+          72
+        ],
+        "critique_base_pct": 20,
+        "poids": 1
+      }
+    ]
+  },
+  "bonus": {
+    "vitality": 0.15,
+    "earthElementResistPercent": 4,
+    "fireElementResistPercent": 4,
+    "waterElementResistPercent": 4,
+    "airElementResistPercent": 4,
+    "neutralElementResistPercent": 4,
+    "tackleEvade": 0.5
+  },
+  "objets": {
+    "imposes": [
+      8698
+    ],
+    "interdits": [],
+    "effets_conditionnels": {
+      "8698": {
+        "multiplicateur_final": 1.2
+      },
+      "20286": {
+        "soin_pv_pct": 30,
+        "multiplicateur_final": 1.02
+      }
+    }
+  },
+  "analyse": "Style validé : hybride pièges + mêlée, en PvM. Variantes retenues : Piège Mortel (plutôt que Calamité), Perfidie (plutôt que Fourvoiement), Attaque Mortelle (plutôt que Pillage). Perfidie coûte 6 PA moins 1 par piège déclenché (4 fois au maximum, donc 2 PA au minimum ; effets retirés après le lancer). Tour type validé (12 PA) : Piège Mortel (3 PA), Perfidie (5 PA grâce à un piège déclenché), Attaque Mortelle (4 PA). Lignes « cible sous 50 % PV » seules (choix utilisateur) : Piège Mortel 49-54 sans critique, Perfidie 56-60 / 62-66 (25 % de critique de base), Attaque Mortelle 54-60 / 65-72 (20 %). Total 166,5 dégâts de base dont 69 % peuvent critiquer. Typologie : 3 grosses lignes au jet moyen de 55,5, donc 1 Puissance ≈ 1,67 dégât/tour et 1 Dommage ≈ 3 dégâts/tour, soit 1 Dommage ≈ 1,8 Puissance : profil Puissance. Critique utile sur 2 lignes sur 3 (écart critique +10 % sur Perfidie, +20 % sur Attaque Mortelle), avec Dommages critiques utiles. Puissance pièges (0,5 dégât/point) et Dommages pièges (1/point) pour le Piège Mortel uniquement. % Mêlée pour Perfidie et Attaque Mortelle, % Distance pour le piège, % Sorts partout. Portée utile seulement pour poser le piège (1-8 modifiable) : +3 en compromis (100 par point manquant). Pas de poussée. Seuils : 12 PA strict, 6 PM en compromis (400 par PM manquant). Dofus imposé : Nébuleux (×1,20 de dommages finaux les tours impairs, ×0,90 les tours pairs). Compté à ×1,20 en multiplicateur final, car les gros dégâts sont concentrés sur les tours impairs (choix utilisateur, optimiste). Aucun autre Dofus conditionnel retenu (Ébène, Pourpre, Sylvestre, Domakuro écartés). Défense faible : Vitalité 0,15, 4 par % de résistance, Fuite 0,5. Argenté Scintillant valorisé (non imposé) : soin unique de 30 % des PV (PV effectifs) et ×1,02 de dommages finaux (+20 % sur 1 tour d'un combat de 10 tours)."
+}

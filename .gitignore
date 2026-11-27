@@ -1,0 +1,9 @@
+node_modules/
+.cache/
+
+data/*shm
+data/*wal
+
+.env
+resultats/
+cibles/.claude/settings.local.json

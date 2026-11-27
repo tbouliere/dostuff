@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "nom": "sram-eau-feu-zones",
+  "demande": "sram eau feu qui veut profiter des zone de calamité et piege de fragmentation",
+  "classe": {
+    "id": 4,
+    "nom": "Sram"
+  },
+  "points": {
+    "mode": "auto",
+    "minimum": {}
+  },
+  "contraintes": {
+    "actionPoints": {
+      "min": 12,
+      "strict": true
+    },
+    "movementPoints": {
+      "min": 6,
+      "strict": false,
+      "penalite": 400
+    },
+    "range": {
+      "min": 6,
+      "strict": false,
+      "penalite": 150
+    }
+  },
+  "degats": {
+    "cible": {
+      "resistances_pct": {},
+      "resistances_fixes": {}
+    },
+    "sorts": [
+      {
+        "sort": "Calamité (2 cibles, pas de réduction de zone)",
+        "id": 12950,
+        "element": "Eau",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          40,
+          44
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 2
+      },
+      {
+        "sort": "Piège à Fragmentation - cible centrale, case centrale",
+        "id": 12941,
+        "element": "Feu",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          48,
+          52
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      },
+      {
+        "sort": "Piège à Fragmentation - cible centrale, cercle",
+        "id": 12941,
+        "element": "Feu",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          28,
+          32
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      },
+      {
+        "sort": "Piège à Fragmentation - cible à 3 cases, cercle (×0,7)",
+        "id": 12941,
+        "element": "Feu",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          28,
+          32
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 0.7
+      },
+      {
+        "sort": "Piège à Fragmentation - cible à 3 cases, anneau 3 (non réduit)",
+        "id": 12941,
+        "element": "Feu",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          47,
+          51
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      },
+      {
+        "sort": "Piège Fangeux",
+        "id": 12916,
+        "element": "Eau",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          33,
+          37
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      }
+    ]
+  },
+  "bonus": {
+    "vitality": 0.3,
+    "earthElementResistPercent": 8,
+    "fireElementResistPercent": 8,
+    "waterElementResistPercent": 8,
+    "airElementResistPercent": 8,
+    "neutralElementResistPercent": 8,
+    "tackleEvade": 1
+  },
+  "objets": {
+    "imposes": [],
+    "interdits": [22020],
+    "effets_conditionnels": {
+      "20286": {
+        "soin_pv_pct": 30,
+        "multiplicateur_final": 1.02
+      }
+    }
+  },
+  "analyse": "Sram pièges Eau/Feu orienté zones. Variantes : Calamité (plutôt que Piège Mortel Terre), Piège à Fragmentation (plutôt que Piège Scélérat), Piège Fangeux (plutôt qu'Épidémie). Tour type validé : Calamité (4 PA), Fragmentation (4 PA), Fangeux (3 PA), 1 PA inutilisé. Zones : 2 cibles en moyenne (choix utilisateur). Calamité (carré de 1 case, 40-44) touche 2 ennemis sans réduction de zone (exception utilisateur, docs/degats.md §5). Fragmentation : cible centrale = case centrale 48-52 + cercle de 3 cases 28-32 (jet moyen 80) ; seconde cible sur l'anneau à 3 cases (dégâts maximaux) = cercle réduit ×0,7 + anneau 47-51 non réduit (jet moyen 70). Le cercle et les anneaux touchent aussi les alliés. La réduction de zone est portée par le poids. Typologie : tous pièges, donc aucun critique (% Critique et Dommages critiques inutiles). Jets pondérés : 269 de base sur 6,7 lignes pondérées, donc 1 Puissance ≈ 2,7 dégâts/tour et 1 Dommage ≈ 6,7 dégâts/tour, soit 1 Dommage ≈ 2,5 Puissance (profil mixte, légèrement Dommages). Puissance pièges et Dommages pièges pleinement utiles. Répartition : Feu 56 % (Intelligence, Dommages Feu), Eau 44 % (Chance, Dommages Eau). Pièges posés à distance : % Sorts et % Distance comptent. Portée utile (portées 1-6 à 1-8, toutes modifiables). Pas de poussée. Seuils par défaut : 12 PA strict, 6 PM en compromis (400 par PM manquant), +6 Portée en compromis (150 par point). Aucun Dofus conditionnel imposé (choix utilisateur). Défense modérée : Vitalité 0,3, 8 par % de résistance, Fuite 1. Argenté Scintillant valorisé (non imposé) : soin unique de 30 % des PV (PV effectifs) et ×1,02 de dommages finaux (+20 % sur 1 tour d'un combat de 10 tours)."
+}

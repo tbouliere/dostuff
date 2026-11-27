@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "nom": "sram-pieges-air-eau",
+  "demande": "Sram pièges Air/Eau",
+  "classe": {
+    "id": 4,
+    "nom": "Sram"
+  },
+  "points": {
+    "mode": "auto",
+    "minimum": {}
+  },
+  "contraintes": {
+    "actionPoints": {
+      "min": 12,
+      "strict": true
+    },
+    "movementPoints": {
+      "min": 6,
+      "strict": false,
+      "penalite": 400
+    },
+    "range": {
+      "min": 6,
+      "strict": false,
+      "penalite": 150
+    }
+  },
+  "degats": {
+    "cible": {
+      "resistances_pct": {},
+      "resistances_fixes": {}
+    },
+    "sorts": [
+      {
+        "sort": "Piège Fangeux",
+        "id": 12916,
+        "element": "Eau",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          33,
+          37
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 2
+      },
+      {
+        "sort": "Piège Scélérat",
+        "id": 12931,
+        "element": "Eau",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          17,
+          19
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      },
+      {
+        "sort": "Piège Répulsif",
+        "id": 12914,
+        "element": "Air",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          14,
+          17
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1,
+        "poussee_cases": 2
+      },
+      {
+        "sort": "Piège Insidieux",
+        "id": 12918,
+        "element": "Air",
+        "type": "piege",
+        "portee": "distance",
+        "normal": [
+          8,
+          9
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      },
+      {
+        "sort": "Piège Insidieux (poison fin de tour)",
+        "id": 12918,
+        "element": "Air",
+        "type": "poison",
+        "portee": "distance",
+        "normal": [
+          8,
+          9
+        ],
+        "critique": null,
+        "critique_base_pct": 0,
+        "poids": 1
+      }
+    ]
+  },
+  "bonus": {
+    "vitality": 0.5,
+    "earthElementResistPercent": 12,
+    "fireElementResistPercent": 12,
+    "waterElementResistPercent": 12,
+    "airElementResistPercent": 12,
+    "neutralElementResistPercent": 12,
+    "tackleEvade": 1.5
+  },
+  "objets": {
+    "imposes": [
+      23237,
+      7115
+    ],
+    "interdits": [],
+    "effets_conditionnels": {
+      "7115": {
+        "earthElementResistPercent": 10,
+        "fireElementResistPercent": 10,
+        "waterElementResistPercent": 10,
+        "airElementResistPercent": 10,
+        "neutralElementResistPercent": 10
+      },
+      "20286": {
+        "soin_pv_pct": 30,
+        "multiplicateur_final": 1.02
+      },
+      "23237": {
+        "allDamageBonus": 64
+      }
+    }
+  },
+  "analyse": "Sorts retenus (variante choisie par paire) : Piège Fangeux (Eau, 3 PA, 33-37, 2/tour ; plutôt qu'Épidémie), Piège Scélérat (Eau, 2 PA, 17-19, attire 3 ; plutôt que Fragmentation Feu), Piège Répulsif (Air, 2 PA, 14-17, repousse 2 ; plutôt qu'Effroyable Terre), Piège Insidieux (Air, 2 PA, 8-9 au déclenchement + poison 8-9 en fin de tour ; plutôt que Dérive Feu). Calamité (Eau, 4 PA, 40-44) écartée au profit d'une rotation équilibrée Air/Eau. Tour type validé (12 PA) : Fangeux ×2, Scélérat, Répulsif, Insidieux, soit 120,5 dégâts de base dont 27 % Air. Typologie : aucun piège ne critique, donc % Critique et Dommages critiques inutiles. 6 lignes de dégâts pour un jet moyen de 20 : 1 Dommage ≈ 6 dégâts/tour contre 1,2 pour 1 Puissance, donc 1 Dommage ≈ 5 Puissance (profil dommages fixes). Puissance pièges et Dommages pièges comptent pour les lignes de pièges. Le poison d'Insidieux est traité comme un sort normal, sans bonus de pièges (choix utilisateur). Pièges posés à distance : % Sorts et % Distance comptent, % Mêlée inutile. Portée utile (pièges 1-6 à 1-8, portée modifiable). Dommages poussée marginaux (Répulsif 2 cases, 0,5 dégât par point, seulement en cas de collision). Seuils : 12 PA strict, 6 PM en compromis (400 par PM manquant), +6 Portée en compromis (150 par point). Dofus imposés : Domakuro (+64 Dommages, Sram invisible qui ne subit pas de dégâts) et Ivoire (1 attaque sur 5 réduite de 50 %, modélisée en +10 % de résistance à tous les éléments). Ébène non proposé (pas d'alternance mêlée/distance). Défense jugée importante : Vitalité 0,5, 12 par % de résistance, Fuite 1,5. Argenté Scintillant valorisé (non imposé) : soin unique de 30 % des PV (PV effectifs) et ×1,02 de dommages finaux (+20 % sur 1 tour d'un combat de 10 tours)."
+}

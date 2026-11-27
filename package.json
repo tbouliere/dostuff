@@ -1,0 +1,22 @@
+{
+  "name": "dostuff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync-dofusdb.js",
+    "sync:refresh": "node scripts/sync-dofusdb.js --refresh",
+    "random": "node --env-file-if-exists=.env scripts/random-stuff.js",
+    "check-cibles": "node --no-warnings scripts/check-cibles.js",
+    "evaluate": "node --no-warnings --env-file-if-exists=.env scripts/evaluate-stuff.js",
+    "optimise": "node --no-warnings --env-file-if-exists=.env scripts/optimise.js",
+    "test": "node --no-warnings --test tests/"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  }
+}

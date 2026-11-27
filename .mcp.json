@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dofus": {
+      "command": "node",
+      "args": ["--no-warnings", "mcp/server.js"]
+    }
+  }
+}

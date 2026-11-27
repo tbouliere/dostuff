@@ -31,7 +31,9 @@ Le projet avance par étapes validées une à une par l'utilisateur. Ne pas impl
    résultats dans `resultats/<nom>-<n>.json`, orchestré par la skill `optimise-stuff` (à valider)
 
 7. Forgemagie (exo PA, exo PM, runes de transcendance) → règles `docs/forgemagie.md` (validées),
-   publication DofusDB `--forgemagie` (testée), intégrée à l'évaluation et à l'optimiseur (à valider)
+   publication DofusDB `--forgemagie` (testée), intégrée à l'évaluation et à l'optimiseur (à valider) ;
+   Dracorunes (désactivées par défaut) intégrées, publication par la forgemagie (lignes converties à 0,
+   lignes créées en exos) : à vérifier sur DofusDB
 
 ## Idées notées (non planifiées)
 

@@ -49,19 +49,104 @@ export function bestRune(item, stat) {
   return null;
 }
 
-/** Options de forgemagie de la cible (tout activé par défaut). */
-export const options = (cible) => ({ exo_pa: true, exo_pm: true, transcendance: true, ...(cible.forgemagie ?? {}) });
+/** Options de forgemagie de la cible (exos et transcendance activés, Dracorunes désactivées par défaut). */
+export const options = (cible) => ({ exo_pa: true, exo_pm: true, transcendance: true, dracorunes: false, ...(cible.forgemagie ?? {}) });
+
+// ---------------------------------------------------------------------------
+// Dracorunes (docs/forgemagie.md)
+// ---------------------------------------------------------------------------
+
+const ELEM = {
+  Terre: { carac: 'strength', dmg: 'earthDamageBonus', resPct: 'earthElementResistPercent', resFix: 'earthElementReduction' },
+  Feu: { carac: 'intelligence', dmg: 'fireDamageBonus', resPct: 'fireElementResistPercent', resFix: 'fireElementReduction' },
+  Eau: { carac: 'chance', dmg: 'waterDamageBonus', resPct: 'waterElementResistPercent', resFix: 'waterElementReduction' },
+  Air: { carac: 'agility', dmg: 'airDamageBonus', resPct: 'airElementResistPercent', resFix: 'airElementReduction' },
+  Neutre: { resPct: 'neutralElementResistPercent', resFix: 'neutralElementReduction' },
+};
+/** Dracorunes élémentaires → élément cible. */
+export const DRACO_ELEMENTS = { Ocre: 'Terre', Pourpre: 'Feu', Turquoise: 'Eau', Emeraude: 'Air' };
+const OFFENSIVE = ['Terre', 'Feu', 'Eau', 'Air']; // le Neutre n'est jamais touché
+
+const has = (st, k) => !!k && (st[k] ?? 0) !== 0;
+function move(st, from, to, keys) {
+  const out = { ...st };
+  for (const k of keys) {
+    if (!has(st, ELEM[from][k])) continue;
+    out[ELEM[to][k]] = st[ELEM[from][k]];
+    delete out[ELEM[from][k]];
+  }
+  return out;
+}
+
+/**
+ * Applique une Dracorune à des caractéristiques d'objet (après transcendance).
+ * d = { rune: 'Ocre'|'Pourpre'|'Turquoise'|'Emeraude', from } | { rune: 'Ivoire', from, to } | { rune: 'Ebene' }
+ * @returns nouvelles caractéristiques, ou null si la rune n'est pas applicable
+ */
+export function applyDraco(st, d) {
+  if (DRACO_ELEMENTS[d.rune]) {
+    const to = DRACO_ELEMENTS[d.rune];
+    const from = d.from;
+    if (!OFFENSIVE.includes(from) || from === to) return null;
+    if (!has(st, ELEM[from].carac) && !has(st, ELEM[from].dmg)) return null;
+    if (has(st, ELEM[to].carac) || has(st, ELEM[to].dmg)) return null; // élément cible déjà présent
+    return move(st, from, to, ['carac', 'dmg']);
+  }
+  if (d.rune === 'Ivoire') {
+    if (!ELEM[d.from] || !ELEM[d.to] || d.from === d.to) return null;
+    if (!has(st, ELEM[d.from].resPct) && !has(st, ELEM[d.from].resFix)) return null;
+    if (has(st, ELEM[d.to].resPct) || has(st, ELEM[d.to].resFix)) return null;
+    return move(st, d.from, d.to, ['resPct', 'resFix']);
+  }
+  if (d.rune === 'Ebene') {
+    const caracs = OFFENSIVE.map((e) => ELEM[e].carac).filter((k) => (st[k] ?? 0) > 0);
+    const dmgs = OFFENSIVE.map((e) => ELEM[e].dmg).filter((k) => (st[k] ?? 0) > 0);
+    if (!caracs.length && !dmgs.length) return null;
+    const out = { ...st };
+    const maxC = Math.max(0, ...caracs.map((k) => st[k]));
+    const maxD = Math.max(0, ...dmgs.map((k) => st[k]));
+    for (const k of [...caracs, ...dmgs]) delete out[k]; // valeurs négatives conservées
+    if (maxC) out.damagePercent = (out.damagePercent ?? 0) + Math.floor(maxC * 0.7);
+    if (maxD) out.allDamageBonus = (out.allDamageBonus ?? 0) + Math.floor(maxD * 0.7);
+    return out;
+  }
+  return null;
+}
+
+/** Toutes les Dracorunes applicables à des caractéristiques d'objet. */
+export function dracoOptions(st) {
+  const opts = [];
+  for (const rune of Object.keys(DRACO_ELEMENTS)) for (const from of OFFENSIVE) opts.push({ rune, from });
+  for (const from of Object.keys(ELEM)) for (const to of Object.keys(ELEM)) opts.push({ rune: 'Ivoire', from, to });
+  opts.push({ rune: 'Ebene' });
+  return opts.filter((d) => applyDraco(st, d));
+}
+
+/** Caractéristiques finales d'un objet avec sa forgemagie (transcendance puis Dracorune ; exo inclus). */
+export function itemStatsAfter(item, f = {}) {
+  let st = { ...item.stats };
+  if (f.trans) st[f.trans.stat] = (st[f.trans.stat] ?? 0) + f.trans.value;
+  if (f.draco) st = applyDraco(st, f.draco) ?? st;
+  if (f.exo) st[f.exo] = (st[f.exo] ?? 0) + 1;
+  return st;
+}
 
 /** Positions des objets du stuff : [{ slot, item }]. */
 const placed = (stuff) => Object.entries(stuff).filter(([s]) => SLOTS[s])
   .flatMap(([slot, v]) => [v].flat().filter(Boolean).map((item) => ({ slot, item })));
 
-/** Bonus de caractéristiques apportés par la forgemagie. */
-export function forgemagieStats(fm) {
+/** Variation des caractéristiques apportée par la forgemagie (à ajouter au total des objets). */
+export function forgemagieStats(fm, stuff) {
   const stats = {};
-  for (const f of Object.values(fm ?? {})) {
-    if (f.exo) stats[f.exo] = (stats[f.exo] ?? 0) + 1;
-    if (f.trans) stats[f.trans.stat] = (stats[f.trans.stat] ?? 0) + f.trans.value;
+  const pos = placed(stuff);
+  for (const [id, f] of Object.entries(fm ?? {})) {
+    const item = pos.find((x) => x.item.id === Number(id))?.item;
+    if (!item) continue;
+    const after = itemStatsAfter(item, f);
+    for (const k of new Set([...Object.keys(item.stats), ...Object.keys(after)])) {
+      const d = (after[k] ?? 0) - (item.stats[k] ?? 0);
+      if (d) stats[k] = (stats[k] ?? 0) + d;
+    }
   }
   return stats;
 }
@@ -95,26 +180,34 @@ export function validateForgemagie(fm, stuff, cible = {}) {
         errors.push(`${name} : rune ${f.trans.taille} ${f.trans.stat} non applicable (attendu ${best ? `${best.taille} +${best.value}` : 'aucune'})`);
       }
     }
+    if (f.draco) {
+      if (!opt.dracorunes) errors.push(`${name} : Dracorunes désactivées par la cible`);
+      if (!TRANS_SLOTS.includes(p.slot)) errors.push(`${name} : Dracorune impossible sur ce type d'objet`);
+      const st = { ...p.item.stats };
+      if (f.trans) st[f.trans.stat] = (st[f.trans.stat] ?? 0) + f.trans.value;
+      if (!applyDraco(st, f.draco)) errors.push(`${name} : Dracorune ${f.draco.rune} non applicable`);
+    }
   }
   if (exoCount.actionPoints > 1) errors.push('plus d\'un exo PA');
   if (exoCount.movementPoints > 1) errors.push('plus d\'un exo PM');
   return errors;
 }
 
-/** Format de publication DofusDB du projet (src/dofusdb-publish.js, toDofusDbForgemagie). */
+/**
+ * Format de publication DofusDB du projet (src/dofusdb-publish.js, toDofusDbForgemagie) : lignes d'origine avec
+ * leur valeur finale (0 si convertie par une Dracorune) ; lignes absentes de l'objet d'origine en exos
+ * (DofusDB n'affiche dans « stats » que les lignes de l'objet).
+ */
 export function toPublishFormat(fm, stuff) {
   const out = {};
   for (const [id, f] of Object.entries(fm ?? {})) {
     const item = placed(stuff).find((x) => x.item.id === Number(id))?.item;
     if (!item) continue;
-    out[id] = { stats: {}, exos: [] };
-    // Rune sur une caractéristique que l'objet a déjà → nouvelle valeur dans stats ; sinon la caractéristique
-    // est ajoutée : DofusDB ne l'affiche que déclarée en exo (stats ne couvre que les lignes de l'objet).
-    if (f.trans) {
-      if (item.stats[f.trans.stat]) out[id].stats[f.trans.stat] = item.stats[f.trans.stat] + f.trans.value;
-      else out[id].exos.push({ stat: f.trans.stat, value: f.trans.value });
-    }
-    if (f.exo) out[id].exos.push({ stat: f.exo, value: 1 });
+    const after = itemStatsAfter(item, f);
+    const stats = {};
+    for (const k of Object.keys(item.stats)) if ((after[k] ?? 0) !== item.stats[k]) stats[k] = after[k] ?? 0;
+    const exos = Object.entries(after).filter(([k, v]) => !(k in item.stats) && v).map(([stat, value]) => ({ stat, value }));
+    out[id] = { stats, exos };
   }
   return out;
 }
@@ -124,7 +217,15 @@ export function describe(fm, stuff) {
   return Object.entries(fm ?? {}).map(([id, f]) => {
     const item = placed(stuff).find((x) => x.item.id === Number(id))?.item;
     const name = item?.name ?? `#${id}`;
-    if (f.exo) return `${name} : exo +1 ${f.exo === 'actionPoints' ? 'PA' : 'PM'}`;
-    return `${name} : rune ${f.trans.taille === 'TA' ? 'TA' : `${f.trans.taille} TA`} ${f.trans.stat} +${f.trans.value}`;
+    const parts = [];
+    if (f.exo) parts.push(`exo +1 ${f.exo === 'actionPoints' ? 'PA' : 'PM'}`);
+    if (f.trans) parts.push(`rune ${f.trans.taille === 'TA' ? 'TA' : `${f.trans.taille} TA`} ${f.trans.stat} +${f.trans.value}`);
+    if (f.draco) {
+      const d = f.draco;
+      parts.push(d.rune === 'Ebene' ? 'Dracorune Ébène (élémentaire → Puissance / Dommages)'
+        : d.rune === 'Ivoire' ? `Dracorune Ivoire (rés. ${d.from} → ${d.to})`
+          : `Dracorune ${d.rune === 'Emeraude' ? 'Émeraude' : d.rune} (${d.from} → ${DRACO_ELEMENTS[d.rune]})`);
+    }
+    return `${name} : ${parts.join(' + ')}`;
   });
 }

@@ -106,7 +106,7 @@ function check(file) {
   // forgemagie (optionnel)
   if (d.forgemagie !== undefined) {
     for (const [k, v] of Object.entries(d.forgemagie)) {
-      if (!['exo_pa', 'exo_pm', 'transcendance'].includes(k)) err(`forgemagie : clé « ${k} » non autorisée`);
+      if (!['exo_pa', 'exo_pm', 'transcendance', 'dracorunes'].includes(k)) err(`forgemagie : clé « ${k} » non autorisée`);
       if (typeof v !== 'boolean') err(`forgemagie.${k} doit être true/false`);
     }
   }

@@ -2,7 +2,7 @@
 // Lancement : npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineDamage, evalCriterion, loadStuff, evaluate, bonusWeights } from '../src/evaluation.js';
+import { lineDamage, evalCriterion, loadStuff, evaluate, bonusWeights, rawTotals } from '../src/evaluation.js';
 
 const line = (o) => ({ sort: 't', type: 'sort', portee: 'distance', element: 'Feu', normal: [10, 10], critique: null, poids: 1, ...o });
 
@@ -86,4 +86,13 @@ test('Arcaniste : malus rés. distance/mêlée compté ; Argenté : soin_pv_pct 
   const arg = evaluate(loadStuff({ dofus: [20286] }), cible, {});
   // +300 Vitalité × 0,1, puis soin : 0,1 × (1150 + 300) PV × 30 %
   assert.ok(Math.abs(arg.score - vide.score - (30 + 0.1 * 1450 * 0.3)) < 1e-9);
+});
+
+test('Sagesse : +1 Retrait PA/PM et Esquive PA/PM par 10 points (arrondi inférieur)', () => {
+  // 100 parchemin + 59 points + 96 objet = 255 Sagesse → +25 ; Retrait PM objet 20 → 45
+  const t = rawTotals([{ id: 1, stats: { wisdom: 96, mpReduction: 20 } }], { wisdom: 59 });
+  assert.equal(t.mpReduction, 45);
+  assert.equal(t.apReduction, 25);
+  assert.equal(t.DodgeMpLostProbability, 25);
+  assert.equal(t.DodgeApLostProbability, 25);
 });

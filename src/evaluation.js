@@ -82,8 +82,13 @@ export function rawTotals(items, points, effets = {}) {
     }
   }
   t.hitPoints = BASE.hp + (t.vitality ?? 0);
+  // Sagesse : +1 Retrait PA / PM et +1 Esquive PA / PM par 10 points (docs/personnage.md).
+  const sagesse = Math.floor(Math.max(0, t.wisdom ?? 0) / 10);
+  for (const k of WISDOM_DERIVED) t[k] = (t[k] ?? 0) + sagesse;
   return t;
 }
+
+const WISDOM_DERIVED = ['apReduction', 'mpReduction', 'DodgeApLostProbability', 'DodgeMpLostProbability'];
 
 const RES_PCT = ['earthElementResistPercent', 'fireElementResistPercent', 'waterElementResistPercent',
   'airElementResistPercent', 'neutralElementResistPercent'];
@@ -247,7 +252,7 @@ export function evaluate(stuff, cible, points, fm = {}) {
   const spent = Object.entries(points).reduce((s, [c, v]) => { for (let i = 0; i < v; i++) s += pointCost(c, i); return s; }, 0);
   if (spent > CHARAC_POINTS) erreurs.push(`${spent} points dépensés > ${CHARAC_POINTS}`);
 
-  const raw = rawTotals([...items, { id: -2, stats: forgemagieStats(fm) }], points, effets);
+  const raw = rawTotals([...items, { id: -2, stats: forgemagieStats(fm, stuff) }], points, effets);
   const ctx = { totals: raw, setCount: equippedSetCount(items) };
   for (const it of items) {
     if (!it.criterions) continue;
@@ -299,7 +304,7 @@ export function evaluate(stuff, cible, points, fm = {}) {
 export function bestPoints(stuff, cible, fm = {}) {
   const items = Object.values(stuff).flat().filter(Boolean);
   const points = Object.fromEntries(CHARACS.map((c) => [c, 0]));
-  const noPoints = rawTotals([...items, { id: -2, stats: forgemagieStats(fm) }], points, cible.objets?.effets_conditionnels ?? {});
+  const noPoints = rawTotals([...items, { id: -2, stats: forgemagieStats(fm, stuff) }], points, cible.objets?.effets_conditionnels ?? {});
   const mins = { ...pointMinimums(items, noPoints) };
   for (const [k, v] of Object.entries(cible.points?.minimum ?? {})) mins[k] = Math.max(mins[k] ?? 0, v);
 

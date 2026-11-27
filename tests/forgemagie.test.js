@@ -1,7 +1,7 @@
 // Tests de src/forgemagie.js (docs/forgemagie.md). Lancement : npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bestRune, validateForgemagie, forgemagieStats } from '../src/forgemagie.js';
+import { bestRune, validateForgemagie, forgemagieStats, applyDraco, dracoOptions, itemStatsAfter, toPublishFormat } from '../src/forgemagie.js';
 import { loadItem, loadStuff, evaluate } from '../src/evaluation.js';
 
 const item = (stats) => ({ id: 1, name: 'x', stats });
@@ -33,7 +33,8 @@ test('exos : un PA et un PM, sur deux anneaux différents sans la caractéristiq
 });
 
 test('forgemagie ajoutée au total final', () => {
-  assert.deepEqual(forgemagieStats({ 1: { exo: 'actionPoints' }, 2: { trans: { stat: 'chance', taille: 'Ra', value: 20 } } }),
+  const fake = { rings: [{ id: 1, stats: {} }], helmet: { id: 2, stats: {} } };
+  assert.deepEqual(forgemagieStats({ 1: { exo: 'actionPoints' }, 2: { trans: { stat: 'chance', taille: 'Ra', value: 20 } } }, fake),
     { actionPoints: 1, chance: 20 });
   const stuff = loadStuff({ rings: [14879] });
   const cible = { degats: { sorts: [] }, contraintes: {} };
@@ -51,4 +52,41 @@ test('toPublishFormat : rune sur une caractéristique absente de l\'objet → ex
   }, stuff);
   assert.deepEqual(out['1'], { stats: {}, exos: [{ stat: 'dealtDamageMultiplierDistance', value: 1 }] });
   assert.deepEqual(out['2'], { stats: { damagePercent: 16 }, exos: [] });
+});
+
+test('Dracorunes élémentaires : caractéristique + dommages convertis, cible déjà présente interdite', () => {
+  const st = { strength: 80, earthDamageBonus: 10, vitality: 300 };
+  assert.deepEqual(applyDraco(st, { rune: 'Emeraude', from: 'Terre' }), { agility: 80, airDamageBonus: 10, vitality: 300 });
+  assert.equal(applyDraco({ strength: 80, agility: 40 }, { rune: 'Emeraude', from: 'Terre' }), null);
+  assert.equal(applyDraco({ neutralDamageBonus: 10 }, { rune: 'Ocre', from: 'Terre' }), null); // Neutre jamais touché
+  assert.deepEqual(applyDraco({ strength: -50 }, { rune: 'Pourpre', from: 'Terre' }), { intelligence: -50 }); // malus converti
+});
+
+test('Dracorune Ivoire : rés. fixe et % d\'un élément vers un élément absent', () => {
+  const st = { earthElementResistPercent: 10, earthElementReduction: 15, fireElementResistPercent: 5 };
+  assert.deepEqual(applyDraco(st, { rune: 'Ivoire', from: 'Terre', to: 'Air' }),
+    { airElementResistPercent: 10, airElementReduction: 15, fireElementResistPercent: 5 });
+  assert.equal(applyDraco(st, { rune: 'Ivoire', from: 'Terre', to: 'Feu' }), null);
+});
+
+test('Dracorune Ébène : 70 % du max, arrondi inférieur, négatifs conservés, Neutre ignoré', () => {
+  assert.deepEqual(applyDraco({ strength: 100, chance: 100 }, { rune: 'Ebene' }), { damagePercent: 70 });
+  assert.deepEqual(applyDraco({ strength: 100, earthDamageBonus: 10, chance: 50, waterDamageBonus: 5 }, { rune: 'Ebene' }),
+    { damagePercent: 70, allDamageBonus: 7 });
+  assert.deepEqual(applyDraco({ strength: 55, agility: -20, neutralDamageBonus: 4 }, { rune: 'Ebene' }),
+    { agility: -20, neutralDamageBonus: 4, damagePercent: 38 });
+});
+
+test('transcendance puis Dracorune : bonus conservé, élément transcendé = déjà présent', () => {
+  const it = { id: 9, name: 'x', stats: { strength: 80 } };
+  assert.deepEqual(itemStatsAfter(it, { trans: { stat: 'strength', taille: 'TA', value: 10 }, draco: { rune: 'Emeraude', from: 'Terre' } }),
+    { agility: 90 });
+  const afterTrans = { strength: 80, agility: 20 };
+  assert.ok(!dracoOptions(afterTrans).some((d) => d.rune === 'Emeraude'));
+});
+
+test('publication : lignes converties à 0, lignes nouvelles en exos', () => {
+  const it = { id: 9, name: 'x', stats: { strength: 80, vitality: 300 } };
+  const out = toPublishFormat({ 9: { draco: { rune: 'Emeraude', from: 'Terre' } } }, { helmet: it });
+  assert.deepEqual(out, { 9: { stats: { strength: 0 }, exos: [{ stat: 'agility', value: 80 }] } });
 });

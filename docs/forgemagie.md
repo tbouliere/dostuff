@@ -60,3 +60,50 @@ densité : TA 40, Pa TA 60, Ra TA 80   →   seuil = ⌊(101 − densité) / poi
   distance, où % sorts et % distance s'additionnent et valent autant ; les % sorts restent utiles au contact.
   Sauf contre-indication de l'utilisateur. Implémentation : ordre des caractéristiques dans `RUNES`
   (`src/forgemagie.js`), l'optimiseur gardant la première rune à valeur égale.
+
+## Dracorunes (mise à jour 3.8)
+
+Validé avec l'utilisateur (2026-11-27), sauf mention.
+
+Source : texte officiel fourni par l'utilisateur. Une Dracorune **convertit** des caractéristiques d'un objet.
+
+### Les 6 runes
+
+| Dracorune | Effet |
+|---|---|
+| Émeraude | ligne élémentaire → **Agilité** (+ dommages associés → Dommages Air) |
+| Turquoise | → **Chance** (+ Dommages Eau) |
+| Pourpre | → **Intelligence** (+ Dommages Feu) |
+| Ocre | → **Force** (+ Dommages Terre) |
+| Ivoire | résistances d'un élément (fixes **et** %) → un autre élément au choix, absent de l'objet (hors rés. critiques, poussée, distance, mêlée) |
+| Ébène | supprime toutes les caractéristiques élémentaires et dommages élémentaires **positifs** → une ligne Puissance = 70 % de la plus haute caractéristique, une ligne Dommages = 70 % des plus hauts dommages élémentaires |
+
+### Règles
+
+- Runes élémentaires : la caractéristique (Force / Intelligence / Chance / Agilité) **et** les dommages de cet
+  élément sont convertis ensemble ; si l'objet n'a que l'un des deux, seul celui-là est converti.
+  Impossible de convertir vers un élément **déjà présent** sur l'objet.
+- Valeurs négatives : converties par les runes élémentaires et Ivoire ; **conservées telles quelles** par Ébène
+  (et ignorées dans son calcul).
+- Ébène : 100 Force + 100 Chance → 70 Puissance (pas 140) ; 100 Force, 10 Do Terre, 50 Chance, 5 Do Eau →
+  70 Puissance et 7 Dommages.
+- **Une seule Dracorune par objet** ; l'objet n'est plus modifiable ensuite.
+- Compatible avec un objet transcendé, over ou exo.
+- **Neutre jamais touché** : les Dommages Neutre ne sont ni convertis par les runes élémentaires, ni pris en
+  compte ou supprimés par l'Ébène.
+- Ébène : valeurs **arrondies à l'inférieur** (70 % de 55 → 38).
+- Objets éligibles : comme la transcendance (tous les équipements sauf Dofus, trophées, Prysmaradites).
+- **Ordre** : la transcendance se fait avant (l'objet draconisé n'est plus modifiable) ; la Dracorune convertit
+  la ligne **avec** le bonus de transcendance (Force 80 + 20 transcendée → Agilité 100).
+- « Déjà présent » s'entend **après** transcendance : une rune de transcendance Agilité sur un objet sans Agilité
+  interdit ensuite l'Émeraude sur cet objet.
+- Condition de métier (niveau du métier ≥ niveau de l'objet) : ignorée (personnage supposé équipé des métiers).
+- L'optimiseur choisit librement la meilleure Dracorune (et la ligne convertie) par objet, avec la transcendance.
+- **Désactivées par défaut** : option `"forgemagie": { "dracorunes": true }` dans le fichier de cible pour les activer.
+- **[hypothèse]** Ébène : si l'objet a déjà de la Puissance (ou des Dommages), la ligne créée s'y ajoute.
+
+## Matérialisation sur DofusDB
+
+La forgemagie publiée (`--publish`) décrit l'objet final : ses lignes d'origine avec leur valeur finale
+(0 si convertie par une Dracorune) et, en **exos**, toutes les lignes absentes de l'objet d'origine
+(exo PA / PM, transcendance d'une caractéristique absente, lignes créées par une Dracorune).

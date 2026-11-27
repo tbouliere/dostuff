@@ -11,7 +11,7 @@
 
 import { loadEligibleItems, SLOTS } from './stuff.js';
 import { loadItem, evaluate, bestPoints, setBonus } from './evaluation.js';
-import { RUNES, TRANS_SLOTS, bestRune, options as forgeOptions } from './forgemagie.js';
+import { RUNES, TRANS_SLOTS, bestRune, applyDraco, dracoOptions, options as forgeOptions } from './forgemagie.js';
 
 const POSITIONS = Object.entries(SLOTS).flatMap(([slot, d]) =>
   Array.from({ length: d.count }, (_, i) => ({ slot, index: d.count > 1 ? i : null })));
@@ -111,20 +111,48 @@ export function optimise(cible, {
 
   // ---- Forgemagie (docs/forgemagie.md) ----
   /** Meilleure rune de transcendance d'un objet selon le gradient : { trans, v } ou null. */
-  function bestTrans(g, item) {
-    let best = null;
-    for (const stat of RUNE_STATS) {
-      const r = bestRune(item, stat);
-      const v = r ? (g[stat] ?? 0) * r.value : 0;
-      if (r && v > 0 && (!best || v > best.v)) best = { trans: r, v };
+  /** Valeur (gradient) du passage de caractéristiques `before` à `after`. */
+  const diffValue = (g, before, after) => {
+    let v = 0;
+    for (const k of new Set([...Object.keys(before), ...Object.keys(after)])) v += (g[k] ?? 0) * ((after[k] ?? 0) - (before[k] ?? 0));
+    return v;
+  };
+  /** Les n meilleures runes de transcendance d'un objet selon le gradient. */
+  const topTrans = (g, item, n) => RUNE_STATS.map((stat) => bestRune(item, stat)).filter(Boolean)
+    .map((r) => ({ r, v: (g[r.stat] ?? 0) * r.value })).filter((x) => x.v > 0)
+    .sort((a, b) => b.v - a.v).slice(0, n).map((x) => x.r);
+  /** Les n meilleures Dracorunes applicables à des caractéristiques selon le gradient. */
+  const topDraco = (g, st, n) => (fopt.dracorunes ? dracoOptions(st) : [])
+    .map((d) => ({ d, v: diffValue(g, st, applyDraco(st, d)) })).filter((x) => x.v > 0)
+    .sort((a, b) => b.v - a.v).slice(0, n).map((x) => x.d);
+
+  /**
+   * Meilleure combinaison transcendance + Dracorune d'un objet selon le gradient : { f, v }.
+   * allowTrans = false pour un anneau exo (exo et transcendance incompatibles ; exo et Dracorune compatibles).
+   */
+  function bestCombo(g, item, { allowTrans = true, keep } = {}) {
+    let best = { f: {}, v: 0 };
+    const transCands = [null];
+    if (allowTrans && fopt.transcendance) {
+      if (keep?.trans && bestRune(item, keep.trans.stat)) transCands.push(bestRune(item, keep.trans.stat));
+      transCands.push(...topTrans(g, item, 3));
+    }
+    for (const t of transCands) {
+      const base = t ? { ...item.stats, [t.stat]: (item.stats[t.stat] ?? 0) + t.value } : item.stats;
+      const vt = t ? (g[t.stat] ?? 0) * t.value : 0;
+      if (vt > best.v) best = { f: t ? { trans: t } : {}, v: vt };
+      for (const d of topDraco(g, base, 1)) {
+        const v = vt + diffValue(g, base, applyDraco(base, d));
+        if (v > best.v) best = { f: { ...(t ? { trans: t } : {}), draco: d }, v };
+      }
     }
     return best;
   }
-  const transValue = (g, item, slot) => (fopt.transcendance && TRANS_SLOTS.includes(slot) ? bestTrans(g, item)?.v ?? 0 : 0);
+  const fmValue = (g, item, slot) => (TRANS_SLOTS.includes(slot) ? bestCombo(g, item).v : 0);
 
   /**
-   * Forgemagie estimée (gradient) d'un stuff, en partant de la forgemagie courante : exos gardés sur leur anneau
-   * si possible, sinon placés sur l'anneau où ils coûtent le moins de transcendance ; meilleure rune ailleurs.
+   * Forgemagie estimée (gradient) d'un stuff : exos gardés sur leur anneau si possible, sinon placés sur
+   * l'anneau où ils coûtent le moins de transcendance ; meilleure combinaison transcendance + Dracorune ailleurs.
    * `force` : { actionPoints: ringId | null, movementPoints: … } impose le placement des exos (null = pas d'exo).
    */
   function adapt(fm, s, g, force = {}) {
@@ -139,32 +167,34 @@ export function optimise(cible, {
         else {
           ring = ok.find((r) => fm[r.id]?.exo === stat);
           if (!ring) {
-            const scored = ok.map((r) => ({ r, v: (g[stat] ?? 0) - transValue(g, r, 'rings') })).sort((a, b) => b.v - a.v);
+            const lost = (r) => bestCombo(g, r).v - bestCombo(g, r, { allowTrans: false }).v;
+            const scored = ok.map((r) => ({ r, v: (g[stat] ?? 0) - lost(r) })).sort((a, b) => b.v - a.v);
             if (scored[0]?.v > 0) ring = scored[0].r;
           }
         }
         if (ring) out[ring.id] = { exo: stat };
       }
     }
-    if (fopt.transcendance) {
-      for (const slot of TRANS_SLOTS) {
-        if (slot === 'rings' && sameRings) continue;
-        for (const item of [s[slot]].flat().filter(Boolean)) {
-          if (out[item.id]) continue;
-          const keep = fm[item.id]?.trans;
-          const b = keep && bestRune(item, keep.stat) ? { trans: bestRune(item, keep.stat) } : bestTrans(g, item);
-          if (b) out[item.id] = { trans: b.trans };
-        }
+    for (const slot of TRANS_SLOTS) {
+      if (slot === 'rings' && sameRings) continue;
+      for (const item of [s[slot]].flat().filter(Boolean)) {
+        const exo = out[item.id]?.exo;
+        const { f } = bestCombo(g, item, { allowTrans: !exo, keep: fm[item.id] });
+        if (exo || Object.keys(f).length) out[item.id] = { ...(exo ? { exo } : {}), ...f };
       }
     }
     return out;
   }
 
-  /** Forgemagie optimisée exactement : placements d'exos essayés, puis meilleure rune objet par objet. */
+  /**
+   * Forgemagie optimisée exactement : placements d'exos essayés, puis, objet par objet, les meilleures
+   * combinaisons transcendance × Dracorune selon le gradient, évaluées exactement.
+   */
   function optimiseFm(s, points, g, fm) {
     const rings = (s.rings ?? []).filter(Boolean);
     const choices = (stat) => [null, ...rings.filter((r) => !(r.stats[stat] > 0)).map((r) => r.id)];
-    let best = { fm: adapt(fm, s, g), value: objective(run(s, points, adapt(fm, s, g))) };
+    const start = adapt(fm, s, g);
+    let best = { fm: start, value: objective(run(s, points, start)) };
     const pa = EXO_STATS.includes('actionPoints') ? choices('actionPoints') : [null];
     const pm = EXO_STATS.includes('movementPoints') ? choices('movementPoints') : [null];
     for (const a of pa) {
@@ -178,16 +208,20 @@ export function optimise(cible, {
         if (v > best.value + 1e-6) best = { fm: cand, value: v };
       }
     }
-    // Runes : pour chaque objet, les 3 meilleures selon le gradient, évaluées exactement.
-    for (const [id, f] of Object.entries(best.fm)) {
-      if (!f.trans) continue;
-      const item = Object.values(s).flat().find((it) => it?.id === Number(id));
-      const runes = RUNE_STATS.map((stat) => bestRune(item, stat)).filter(Boolean)
-        .map((r) => ({ r, v: (g[r.stat] ?? 0) * r.value })).sort((x, y) => y.v - x.v).slice(0, 3);
-      for (const { r } of runes) {
-        const cand = { ...best.fm, [id]: { trans: r } };
-        const v = objective(run(s, points, cand));
-        if (v > best.value + 1e-6) best = { fm: cand, value: v };
+    const items = new Map();
+    for (const slot of TRANS_SLOTS) for (const it of [s[slot]].flat().filter(Boolean)) items.set(it.id, it);
+    for (const [id, item] of items) {
+      const exo = best.fm[id]?.exo;
+      const transCands = [null, ...(exo || !fopt.transcendance ? [] : topTrans(g, item, 3))];
+      for (const t of transCands) {
+        const base = t ? { ...item.stats, [t.stat]: (item.stats[t.stat] ?? 0) + t.value } : item.stats;
+        for (const d of [null, ...topDraco(g, base, 3)]) {
+          const f = { ...(exo ? { exo } : {}), ...(t ? { trans: t } : {}), ...(d ? { draco: d } : {}) };
+          const cand = { ...best.fm };
+          if (Object.keys(f).length) cand[id] = f; else delete cand[id];
+          const v = objective(run(s, points, cand));
+          if (v > best.value + 1e-6) best = { fm: cand, value: v };
+        }
       }
     }
     return best.fm;
@@ -226,7 +260,7 @@ export function optimise(cible, {
           let v = linear(g, it.stats);
           // Potentiel de forgemagie : exo de l'anneau remplacé conservable, sinon meilleure transcendance.
           const exo = fm[get(cur, p)?.id]?.exo;
-          v += exo && !(it.stats[exo] > 0) ? (g[exo] ?? 0) : transValue(g, it, p.slot);
+          v += exo && !(it.stats[exo] > 0) ? (g[exo] ?? 0) : fmValue(g, it, p.slot);
           if (it.setId && !ids.has(it.id)) {
             const n = counts.get(it.setId) ?? 0;
             v += setValue(g, it.setId, n + 1) - setValue(g, it.setId, n);

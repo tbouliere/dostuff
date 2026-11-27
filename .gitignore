@@ -6,4 +6,5 @@ data/*wal
 
 .env
 resultats/
-cibles/.claude/settings.local.json
+cibles/
+.claude/settings.local.json

@@ -65,9 +65,9 @@ rangé dans `cibles/<nom>.json` (le nom du fichier = champ `nom`). Vérification
     "effets_conditionnels": { "23237": { "allDamageBonus": 64 } }
   },
 
-  // 6. Forgemagie (docs/forgemagie.md), optionnel : tout est activé par défaut. Mettre false si l'utilisateur
-  //    ne veut pas (ou n'a pas les moyens) d'exo PA, d'exo PM ou de runes de transcendance.
-  "forgemagie": { "exo_pa": true, "exo_pm": true, "transcendance": true },
+  // 6. Forgemagie (docs/forgemagie.md), optionnel. Par défaut : exos et transcendance activés, Dracorunes
+  //    désactivées. Mettre false / true selon ce que l'utilisateur veut (ou peut) forgemager.
+  "forgemagie": { "exo_pa": true, "exo_pm": true, "transcendance": true, "dracorunes": false },
 
   // 7. Justification lisible (analyse des sorts, choix faits avec l'utilisateur).
   "analyse": "…"
@@ -143,6 +143,7 @@ stuff invalide si une contrainte stricte, une règle de docs/stuff.md ou une con
   20 redémarrages ; 3 propositions à moins de 3 % du meilleur. Non exhaustif : le résultat dépend de `--seed`.
 - Forgemagie (`src/forgemagie.js`) : à chaque passe, l'optimiseur essaie tous les placements d'exo PA / PM
   sur les anneaux, puis retient pour chaque objet transcendable la meilleure rune (3 meilleures selon le
-  gradient, évaluées exactement) ; les candidats sont évalués avec une forgemagie adaptée. Sortie :
-  `resultats/<nom>-<n>.forgemagie.json` (`{ "<itemId>": { "exo": … } | { "trans": { stat, taille, value } } }`).
+  gradient, évaluées exactement) et, si activées, les meilleures Dracorunes (combinées à la transcendance) ;
+  les candidats sont évalués avec une forgemagie adaptée. Les Dracorunes triplent environ la durée de recherche. Sortie :
+  `resultats/<nom>-<n>.forgemagie.json` (`{ "<itemId>": { "exo"?: …, "trans"?: { stat, taille, value }, "draco"?: { rune, from?, to? } } }`).
 - Tests : `npm test` (exemples chiffrés des guides, règles de forgemagie).

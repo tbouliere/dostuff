@@ -31,7 +31,7 @@ et garder le meilleur (les fichiers `resultats/` sont écrasés à chaque lancem
 Options : `--restarts N` (défaut 20 ; plus = plus long, meilleur), `--seed N` (autre exploration), `--ecart 0.05`
 (propositions jusqu'à 5 % du meilleur).
 Résultats : `resultats/<nom>-<n>.json` + `.points.json` + `.forgemagie.json` (exo PA / PM, runes de
-transcendance, `docs/forgemagie.md`) ; le script affiche un comparatif
+transcendance, Dracorunes si activées, `docs/forgemagie.md`) ; le script affiche un comparatif
 puis le détail de chaque proposition.
 
 ### 4. Présenter (réponse courte, chiffres à l'appui)
@@ -53,7 +53,8 @@ Donner les liens `https://dofusdb.fr/fr/tools/stuff/<id>` obtenus.
 Proposer les leviers pertinents et relancer après accord :
 - poids de `bonus` (offensif ↔ défensif), `poids` des sorts (rotation) ;
 - contraintes (strict ↔ compromis, pénalité) ;
-- forgemagie (`forgemagie.exo_pa / exo_pm / transcendance` à false si l'utilisateur ne veut pas) ;
+- forgemagie (`forgemagie.exo_pa / exo_pm / transcendance` à false si l'utilisateur ne veut pas ;
+  `forgemagie.dracorunes` à true pour autoriser les Dracorunes, désactivées par défaut — recherche ~3× plus longue) ;
 - objets imposés / interdits (ex. l'utilisateur n'a pas tel Dofus) ;
 - paramètres de recherche (`--restarts`, `--seed`, `--ecart`).
 Toute modification de cible : éditer `cibles/<nom>.json`, `npm run check-cibles`, puis retour à l'étape 3.

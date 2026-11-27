@@ -41,6 +41,12 @@ Personnage **entièrement parchotté** : +100 en Vitalité, Sagesse, Force, Inte
 
 Aucune. Total final = base + points investis + parchemins + objets du stuff + bonus de panoplie.
 
+## Caractéristiques dérivées
+
+- **Sagesse** (validé le 2026-11-27) : chaque tranche de 10 points de Sagesse totale (base + parchemin + stuff,
+  arrondi inférieur) donne **+1 Retrait PA, +1 Retrait PM, +1 Esquive PA, +1 Esquive PM**.
+  Ex. 100 de parchemin + 150 de stuff = 250 Sagesse → +25 Retrait PM.
+
 ## Plafonds
 
 | Caractéristique | Maximum |
